@@ -58,6 +58,7 @@ class IdResolver (UserIdResolver):
         self.auth_client = 'localhost'
         self.auth_secret = ''
         self.access_token = None
+        self.mapping = {}
 
     def checkPass(self, uid, password):
         """
@@ -73,7 +74,6 @@ class IdResolver (UserIdResolver):
         """
         returns the user information for a given uid.
         """
-        ret = {}
         # The SCIM ID is always /Users/ID
         # Alas, we can not map the ID to any other attribute
         res = self._get_user(self.resource_server,
@@ -89,19 +89,10 @@ class IdResolver (UserIdResolver):
         # We assume the schema:
         # "schemas": ["urn:scim:schemas:core:1.0"]
 
-        #ret['username'] = user.get(self.mapping.get("username"))
-        #ret['givenname'] = user.get(self.mapping.get("givenname"), "")
-        #ret['surname'] = user.get(self.mapping.get("surname"), "")
-        #ret['phone'] = user.get(self.mapping.get("phone"), "")
-        #ret['mobile'] = user.get(self.mapping.get("mobile"), "")
-        #ret['email'] = user.get(self.mapping.get("email"), "")
-
-        ret = {"phone": "",
-               "email": "",
-               "mobile": ""}
-        ret['username'] = user.get("userName", {})
-        ret['givenname'] = user.get("name", {}).get("givenName", "")
-        ret['surname'] = user.get("name", {}).get("familyName", "")
+        ret = {"phone": "", "email": "", "mobile": "",
+               'username': user.get("userName", {}),
+               'givenname': user.get("name", {}).get("givenName", ""),
+               'surname': user.get("name", {}).get("familyName", "")}
         if user.get("phoneNumbers", {}):
             ret['phone'] = user.get("phoneNumbers")[0].get("value")
         if user.get("emails", {}):
@@ -145,9 +136,7 @@ class IdResolver (UserIdResolver):
         # TODO: search dict is not used at the moment
         res = {}
         if self.access_token:
-            res = self._search_users(self.resource_server,
-                                                 self.access_token,
-                                                 "")
+            res = self._search_users(self.resource_server, self.access_token, {})
 
         for user in res.get("Resources"):
             ret_user = self._fill_user_schema_1_0(user)
@@ -229,15 +218,13 @@ class IdResolver (UserIdResolver):
         
         Parameters are: Authserver, Resourceserver, Client, Secret, Mapping
         """
-        desc = None
         success = False
                
         try:
             access_token = cls.get_access_token(str(param.get("Authserver")),
                                                 param.get("Client"),
                                                 param.get("Secret"))
-            content = cls._search_users(param.get("Resourceserver"),
-                                                    access_token, "")
+            content = cls._search_users(param.get("Resourceserver"), access_token, {})
             num = content.get("totalResults", -1)
             desc = "Found {0!s} users".format(num)
             success = True
@@ -260,10 +247,16 @@ class IdResolver (UserIdResolver):
         url = '{0}/Users?{1}'.format(resource_server, urlencode(params))
         resp = requests.get(url, headers=headers)
         if resp.status_code != 200:
-            info = "Could not get user list: {0!s}".format(resp.status_code)
-            log.error(info)
+            info = "Could not get user list from SCIM server: {0!s}".format(resp.status_code)
+            log.warning(info)
             raise Exception(info)
-        j_content = yaml.safe_load(resp.content)
+        try:
+            j_content = yaml.safe_load(resp.content)
+        except AttributeError as e:
+            info = 'Could not parse response from SCIM server: {0!s}'.format(resp.content)
+            log.warning(info)
+            log.debug('{0!s}'.format(e))
+            raise Exception(info)
 
         return j_content
     
@@ -286,10 +279,16 @@ class IdResolver (UserIdResolver):
         resp = requests.get(url, headers=headers)
 
         if resp.status_code != 200:
-            info = "Could not get user: {0!s}".format(resp.status_code)
-            log.error(info)
+            info = "Could not get a valid response from SCIM server: {0!s}".format(resp.status_code)
+            log.warning(info)
             raise Exception(info)
-        j_content = yaml.safe_load(resp.content)
+        try:
+            j_content = yaml.safe_load(resp.content)
+        except AttributeError as e:
+            info = 'Could not parse response from SCIM server: {0!s}'.format(resp.content)
+            log.warning(info)
+            log.debug('{0!s}'.format(e))
+            raise Exception(info)
 
         return j_content
 
@@ -299,15 +298,20 @@ class IdResolver (UserIdResolver):
         auth = to_unicode(base64.b64encode(to_bytes(client + ':' + secret)))
 
         url = "{0!s}/oauth/token?grant_type=client_credentials".format(server)
-        resp = requests.get(url,
-                            headers={'Authorization': 'Basic ' + auth})
+        resp = requests.get(url, headers={'Authorization': 'Basic ' + auth})
 
         if resp.status_code != 200:
-            info = "Could not get access token: {0!s}".format(resp.status_code)
-            log.error(info)
+            info = "Could not get access token from SCIM server: {0!s}".format(resp.status_code)
+            log.warning(info)
+            raise Exception(info)
+        try:
+            access_token = yaml.safe_load(resp.content).get('access_token')
+        except AttributeError as e:
+            info = 'Could not parse response from SCIM server: {0!s}'.format(resp.content)
+            log.warning(info)
+            log.debug('{0!s}'.format(e))
             raise Exception(info)
 
-        access_token = yaml.safe_load(resp.content).get('access_token')
         return access_token
 
     def create_scim_object(self):
