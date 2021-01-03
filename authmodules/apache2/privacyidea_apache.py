@@ -54,9 +54,9 @@ SALT_SIZE = 10
 DEFAULT_REALM = "apache2"
 
 def check_password(environ, username, password):
-    PRIVACYIDEA, REDIS, SSLVERIFY, TIMEOUT = _get_config()
-    syslog.syslog(syslog.LOG_DEBUG, "Authentication with {0!s}, {1!s}, {2!s}".format(
-        PRIVACYIDEA, REDIS, SSLVERIFY))
+    PRIVACYIDEA, REDIS, SSLVERIFY, TIMEOUT, REALM = _get_config()
+    syslog.syslog(syslog.LOG_DEBUG, "Authentication with {0!s}, {1!s}, {2!s}, {3!s}".format(
+        PRIVACYIDEA, REDIS, SSLVERIFY, REALM))
     r_value = UNAUTHORIZED
     rd = redis.Redis(REDIS)
 
@@ -105,8 +105,7 @@ def _generate_digest(password):
 
 def _generate_key(username, environ):
     key = "{0!s}+{1!s}+{2!s}+{3!s}".format(environ.get("SERVER_NAME", ""),
-                           environ.get("SERVER_PORT", ""),
-                           environ.get("DOCUMENT_ROOT", ""),
+                           environ.get("SERVER_PORT", ""),                           environ.get("DOCUMENT_ROOT", ""),
                            username)
     return key
 
@@ -130,11 +129,11 @@ def _get_config():
     SSLVERIFY = DEFAULT_SSLVERIFY
     REDIS = DEFAULT_REDIS
     TIMEOUT = DEFAULT_TIMEOUT
+    REALM = DEFAULT_REALM
+
     try:
-        PRIVACYIDEA = config_file.get("DEFAULT", "privacyidea") or DEFAULT_PRIVACYIDEA
+           PRIVACYIDEA = config_file.get("DEFAULT", "privacyidea") or DEFAULT_PRIVACYIDEA
         SSLVERIFY = config_file.get("DEFAULT", "sslverify") or DEFAULT_SSLVERIFY
-        #REALM = config_file.get("DEFAULT", "realm") or DEFAULT_REALM
-        REALM = DEFAULT_REALM
         if SSLVERIFY == "False":
             SSLVERIFY = False
         elif SSLVERIFY == "True":
@@ -142,8 +141,10 @@ def _get_config():
         REDIS = config_file.get("DEFAULT", "redis") or DEFAULT_REDIS
         TIMEOUT = config_file.get("DEFAULT", "timeout") or DEFAULT_TIMEOUT
         TIMEOUT = int(TIMEOUT)
+        REALM = config_file.get("DEFAULT", "realm") or DEFAULT_REALM
     except configparser.NoOptionError as exx:
         syslog.syslog(syslog.LOG_ERR, "{0!s}".format(exx))
-    syslog.syslog(syslog.LOG_DEBUG, "Reading configuration {0!s}, {1!s}, {2!s}".format(
-        PRIVACYIDEA, REDIS, SSLVERIFY))
-    return PRIVACYIDEA, REDIS, SSLVERIFY, TIMEOUT
+    syslog.syslog(syslog.LOG_DEBUG, "Reading configuration {0!s}, {1!s}, {2!s}, {3!s}".format(
+        PRIVACYIDEA, REDIS, SSLVERIFY, REALM))
+    return PRIVACYIDEA, REDIS, SSLVERIFY, TIMEOUT, REALM     
+                                           
