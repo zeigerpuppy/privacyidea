@@ -53,7 +53,7 @@ ROUNDS = 2342
 SALT_SIZE = 10
 DEFAULT_REALM = "apache2"
 
-def check_password(environ, username, password, realm):
+def check_password(environ, username, password):
     PRIVACYIDEA, REDIS, SSLVERIFY, TIMEOUT = _get_config()
     syslog.syslog(syslog.LOG_DEBUG, "Authentication with {0!s}, {1!s}, {2!s}".format(
         PRIVACYIDEA, REDIS, SSLVERIFY))
@@ -72,7 +72,7 @@ def check_password(environ, username, password, realm):
         # Check against privacyidea
         data = {"user": username,
                 "pass": password,
-                "realm": realm}
+                "realm": REALM}
         response = requests.post(PRIVACYIDEA + "/validate/check", data=data,
                                  verify=SSLVERIFY)
 
@@ -133,6 +133,8 @@ def _get_config():
     try:
         PRIVACYIDEA = config_file.get("DEFAULT", "privacyidea") or DEFAULT_PRIVACYIDEA
         SSLVERIFY = config_file.get("DEFAULT", "sslverify") or DEFAULT_SSLVERIFY
+        #REALM = config_file.get("DEFAULT", "realm") or DEFAULT_REALM
+        REALM = DEFAULT_REALM
         if SSLVERIFY == "False":
             SSLVERIFY = False
         elif SSLVERIFY == "True":
