@@ -105,7 +105,8 @@ def _generate_digest(password):
 
 def _generate_key(username, environ):
     key = "{0!s}+{1!s}+{2!s}+{3!s}".format(environ.get("SERVER_NAME", ""),
-                           environ.get("SERVER_PORT", ""),                           environ.get("DOCUMENT_ROOT", ""),
+                           environ.get("SERVER_PORT", ""),
+                           environ.get("DOCUMENT_ROOT", ""),
                            username)
     return key
 
