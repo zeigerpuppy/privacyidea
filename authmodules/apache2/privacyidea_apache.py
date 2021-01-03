@@ -132,6 +132,7 @@ def _get_config():
     TIMEOUT = DEFAULT_TIMEOUT
     REALM = DEFAULT_REALM
 
+    # these really should be independent try blocks or else a missing variable in config file will cause subsequent vars not be read
     try:
         PRIVACYIDEA = config_file.get("DEFAULT", "privacyidea") or DEFAULT_PRIVACYIDEA
         SSLVERIFY = config_file.get("DEFAULT", "sslverify") or DEFAULT_SSLVERIFY
@@ -140,9 +141,9 @@ def _get_config():
         elif SSLVERIFY == "True":
             SSLVERIFY = True
         REDIS = config_file.get("DEFAULT", "redis") or DEFAULT_REDIS
+        REALM = config_file.get("DEFAULT", "realm") or DEFAULT_REALM
         TIMEOUT = config_file.get("DEFAULT", "timeout") or DEFAULT_TIMEOUT
         TIMEOUT = int(TIMEOUT)
-        REALM = config_file.get("DEFAULT", "realm") or DEFAULT_REALM
     except configparser.NoOptionError as exx:
         syslog.syslog(syslog.LOG_ERR, "{0!s}".format(exx))
     syslog.syslog(syslog.LOG_DEBUG, "Reading configuration {0!s}, {1!s}, {2!s}, {3!s}".format(
