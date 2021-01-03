@@ -51,9 +51,9 @@ DEFAULT_REDIS = "localhost"
 DEFAULT_TIMEOUT = 300
 ROUNDS = 2342
 SALT_SIZE = 10
+DEFAULT_REALM = "apache2"
 
-
-def check_password(environ, username, password):
+def check_password(environ, username, password, realm):
     PRIVACYIDEA, REDIS, SSLVERIFY, TIMEOUT = _get_config()
     syslog.syslog(syslog.LOG_DEBUG, "Authentication with {0!s}, {1!s}, {2!s}".format(
         PRIVACYIDEA, REDIS, SSLVERIFY))
@@ -71,7 +71,8 @@ def check_password(environ, username, password):
     else:
         # Check against privacyidea
         data = {"user": username,
-                "pass": password}
+                "pass": password,
+                "realm": realm}
         response = requests.post(PRIVACYIDEA + "/validate/check", data=data,
                                  verify=SSLVERIFY)
 
@@ -119,6 +120,7 @@ def _get_config():
         privacyidea = https://hostname/path
         sslverify = True | filename to CA bundle
         timeout = seconds
+        realm = the realm we are using (set in config file)
     :return: The configuration
     :rtype: dict
     """
