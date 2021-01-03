@@ -133,7 +133,7 @@ def _get_config():
     REALM = DEFAULT_REALM
 
     try:
-           PRIVACYIDEA = config_file.get("DEFAULT", "privacyidea") or DEFAULT_PRIVACYIDEA
+        PRIVACYIDEA = config_file.get("DEFAULT", "privacyidea") or DEFAULT_PRIVACYIDEA
         SSLVERIFY = config_file.get("DEFAULT", "sslverify") or DEFAULT_SSLVERIFY
         if SSLVERIFY == "False":
             SSLVERIFY = False
